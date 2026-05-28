@@ -1,28 +1,33 @@
 # dm-parser.tcl
-# version: 0.1
+# version: 0.2
 #
 # purpose:
 # fetch deafmode signal.json
-# emit operational inferences to IRC
+# emit operational telemetry to IRC
 #
 # requirements:
-# package require http
-# package require json
+#   package require http
+#   package require tls
+#   package require json
 #
-# tested conceptually for Eggdrop Tcl 8.6+
+# tested against:
+#   Eggdrop Tcl 8.6+
 
 package require http
-package require json
 package require tls
+package require json
 
 http::register https 443 ::tls::socket
 
 namespace eval deafmode {
+
     variable signal_url "https://deafmo.de/dashboard/signal.json"
     variable channel "#deafmode"
 
     variable last_state ""
     variable debug 1
+
+    variable update_interval 3600
 }
 
 # --------------------------------------------------
@@ -30,6 +35,7 @@ namespace eval deafmode {
 # --------------------------------------------------
 
 proc deafmode::debug {msg} {
+
     variable debug
 
     if {$debug} {
@@ -38,64 +44,98 @@ proc deafmode::debug {msg} {
 }
 
 # --------------------------------------------------
-# fetch signal.json
+# safe dict getter
+# --------------------------------------------------
+
+proc deafmode::dget {data args} {
+
+    if {[catch {
+        dict get $data {*}$args
+    } result]} {
+        return ""
+    }
+
+    return $result
+}
+
+# --------------------------------------------------
+# fetch + parse signal
 # --------------------------------------------------
 
 proc deafmode::fetch_signal {} {
+
     variable signal_url
 
     debug "fetching signal data"
 
-    set token [http::geturl $signal_url -timeout 10000]
+    if {[catch {
+        set token [http::geturl $signal_url -timeout 10000]
+    } err]} {
+
+        debug "transport failure: $err"
+        return ""
+    }
 
     if {[http::status $token] ne "ok"} {
-        debug "http fetch failed"
+
+        debug "http failure: [http::status $token]"
+
         http::cleanup $token
         return ""
     }
 
-    set data [http::data $token]
+    set raw_json [http::data $token]
 
     http::cleanup $token
 
-    return $data
-}
-
-# --------------------------------------------------
-# parse json safely
-# --------------------------------------------------
-
-proc deafmode::parse_signal {raw_json} {
-
     if {$raw_json eq ""} {
+
+        debug "empty payload"
         return ""
     }
 
     if {[catch {
         set parsed [json::json2dict $raw_json]
     } err]} {
+
         debug "json parse failure: $err"
         return ""
     }
+
+    debug "signal payload parsed"
 
     return $parsed
 }
 
 # --------------------------------------------------
-# emit formatted signal line
+# emit state transition + inference
 # --------------------------------------------------
 
 proc deafmode::emit_signal {parsed} {
+
     variable channel
     variable last_state
 
-    set signal_dict [dict get $parsed signal]
+    set signal_dict [dget $parsed signal]
 
-    set current_state [dict get $signal_dict state]
+    if {$signal_dict eq ""} {
+        debug "missing signal block"
+        return
+    }
 
-    set inference_list [dict get $parsed inference]
+    set current_state [dget $signal_dict state]
 
-    set primary_inference [lindex $inference_list 0]
+    if {$current_state eq ""} {
+        set current_state "unknown"
+    }
+
+    set inference_list [dget $parsed inference]
+
+    if {[llength $inference_list] > 0} {
+        set primary_inference [lindex $inference_list 0]
+    } else {
+        set primary_inference "no inference available"
+    }
 
     # ----------------------------------------------
     # state transition detection
@@ -103,7 +143,7 @@ proc deafmode::emit_signal {parsed} {
 
     if {$last_state ne "" && $last_state ne $current_state} {
 
-        puthelp "PRIVMSG $channel :$begin:math:display$state$end:math:display$ $last_state → $current_state"
+        puthelp "PRIVMSG $channel :[deafmode] state transition: $last_state -> $current_state"
 
         debug "state transition emitted"
     }
@@ -114,122 +154,133 @@ proc deafmode::emit_signal {parsed} {
     # primary inference emission
     # ----------------------------------------------
 
-    puthelp "PRIVMSG $channel :$begin:math:display$inference$end:math:display$ $primary_inference"
+    puthelp "PRIVMSG $channel :[deafmode] inference: $primary_inference"
 
     debug "inference emitted"
 }
 
 # --------------------------------------------------
-# hourly update loop
+# update loop
 # --------------------------------------------------
 
 proc deafmode::update_loop {} {
 
+    variable update_interval
+
     debug "starting update cycle"
 
-    set raw_json [fetch_signal]
+    if {[catch {
 
-    if {$raw_json eq ""} {
-        debug "empty signal payload"
+        set parsed [fetch_signal]
 
-        utimer 3600 deafmode::update_loop
-        return
+        if {$parsed eq ""} {
+
+            debug "signal unavailable"
+
+        } else {
+
+            emit_signal $parsed
+
+            debug "cycle complete"
+        }
+
+    } err]} {
+
+        debug "fatal update error: $err"
     }
 
-    set parsed [parse_signal $raw_json]
-
-    if {$parsed eq ""} {
-        debug "parsed signal invalid"
-
-        utimer 3600 deafmode::update_loop
-        return
-    }
-
-    emit_signal $parsed
-
-    debug "cycle complete"
-
-    # ----------------------------------------------
-    # hourly cadence
-    # ----------------------------------------------
-
-    utimer 3600 deafmode::update_loop
+    utimer $update_interval deafmode::update_loop
 }
 
 # --------------------------------------------------
-# manual commands
+# public commands
 # --------------------------------------------------
 
 bind pub - !signal deafmode::cmd_signal
-bind pub - !drift deafmode::cmd_drift
-bind pub - !state deafmode::cmd_state
+bind pub - !drift  deafmode::cmd_drift
+bind pub - !state  deafmode::cmd_state
 
-# ----------------------------------------------
+# --------------------------------------------------
 # !signal
-# ----------------------------------------------
+# --------------------------------------------------
 
 proc deafmode::cmd_signal {nick host hand chan text} {
 
-    set raw_json [fetch_signal]
-
-    set parsed [parse_signal $raw_json]
+    set parsed [fetch_signal]
 
     if {$parsed eq ""} {
-        puthelp "PRIVMSG $chan :[signal] unavailable"
+
+        puthelp "PRIVMSG $chan :\[deafmode\] signal unavailable"
         return
     }
 
-    set inference_list [dict get $parsed inference]
+    set inference_list [dget $parsed inference]
 
-    set primary_inference [lindex $inference_list 0]
+    if {[llength $inference_list] > 0} {
+        set primary_inference [lindex $inference_list 0]
+    } else {
+        set primary_inference "no inference available"
+    }
 
-    puthelp "PRIVMSG $chan :$begin:math:display$signal$end:math:display$ $primary_inference"
+    puthelp "PRIVMSG $chan :\[deafmode\] signal: $primary_inference"
 }
 
-# ----------------------------------------------
+# --------------------------------------------------
 # !drift
-# ----------------------------------------------
+# --------------------------------------------------
 
 proc deafmode::cmd_drift {nick host hand chan text} {
 
-    set raw_json [fetch_signal]
-
-    set parsed [parse_signal $raw_json]
+    set parsed [fetch_signal]
 
     if {$parsed eq ""} {
-        puthelp "PRIVMSG $chan :[drift] unavailable"
+
+        puthelp "PRIVMSG $chan :\[deafmode\] drift unavailable"
         return
     }
 
-    set drift_list [dict get $parsed drift]
+    set drift_list [dget $parsed drift]
+
+    if {[llength $drift_list] == 0} {
+
+        puthelp "PRIVMSG $chan :\[deafmode\] no drift detected"
+        return
+    }
 
     set first_drift [lindex $drift_list 0]
 
-    set drift_inference [dict get $first_drift inference]
+    set drift_inference [dget $first_drift inference]
 
-    puthelp "PRIVMSG $chan :$begin:math:display$drift$end:math:display$ $drift_inference"
+    if {$drift_inference eq ""} {
+        set drift_inference "unknown drift condition"
+    }
+
+    puthelp "PRIVMSG $chan :\[deafmode\] drift: $drift_inference"
 }
 
-# ----------------------------------------------
+# --------------------------------------------------
 # !state
-# ----------------------------------------------
+# --------------------------------------------------
 
 proc deafmode::cmd_state {nick host hand chan text} {
 
-    set raw_json [fetch_signal]
-
-    set parsed [parse_signal $raw_json]
+    set parsed [fetch_signal]
 
     if {$parsed eq ""} {
-        puthelp "PRIVMSG $chan :[state] unavailable"
+
+        puthelp "PRIVMSG $chan :\[deafmode\] state unavailable"
         return
     }
 
-    set signal_dict [dict get $parsed signal]
+    set signal_dict [dget $parsed signal]
 
-    set current_state [dict get $signal_dict state]
+    set current_state [dget $signal_dict state]
 
-    puthelp "PRIVMSG $chan :$begin:math:display$state$end:math:display$ $current_state"
+    if {$current_state eq ""} {
+        set current_state "unknown"
+    }
+
+    puthelp "PRIVMSG $chan :\[deafmode\] state: $current_state"
 }
 
 # --------------------------------------------------
