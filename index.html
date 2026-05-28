@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>DEAFMODE</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <div id="surface">
+
+    <div class="header">
+      <div class="brand">deafmode</div>
+      <div class="status-dot"></div>
+    </div>
+
+    <section class="panel">
+      <div class="label">STATE</div>
+      <div id="wakefulness" class="primary-value">UNKNOWN</div>
+    </section>
+
+    <section class="panel">
+      <div class="label">SIGNAL</div>
+      <div id="signal" class="primary-value">UNKNOWN</div>
+    </section>
+
+    <section class="panel">
+      <div class="label">INFERENCE</div>
+      <div id="inference" class="secondary-value">
+        awaiting telemetry
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="label">DRIFT</div>
+      <div id="drift" class="secondary-value">
+        no active drift
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="label">RESPONSE</div>
+      <div id="response" class="secondary-value">
+        maintain operational stability
+      </div>
+    </section>
+
+    <div class="footer">
+      <div id="timestamp">last update unknown</div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+
+</body>
+</html>
