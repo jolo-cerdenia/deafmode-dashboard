@@ -143,7 +143,7 @@ proc deafmode::emit_signal {parsed} {
 
     if {$last_state ne "" && $last_state ne $current_state} {
 
-        puthelp "PRIVMSG $channel :[deafmode] state transition: $last_state -> $current_state"
+        puthelp "PRIVMSG $channel :\[deafmode\] state transition: $last_state -> $current_state"
 
         debug "state transition emitted"
     }
@@ -154,7 +154,7 @@ proc deafmode::emit_signal {parsed} {
     # primary inference emission
     # ----------------------------------------------
 
-    puthelp "PRIVMSG $channel :[deafmode] inference: $primary_inference"
+    puthelp "PRIVMSG $channel :\[deafmode\] inference: $primary_inference"
 
     debug "inference emitted"
 }
