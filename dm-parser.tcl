@@ -13,6 +13,9 @@
 
 package require http
 package require json
+package require tls
+
+http::register https 443 ::tls::socket
 
 namespace eval deafmode {
     variable signal_url "https://deafmo.de/dashboard/signal.json"
