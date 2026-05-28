@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # deafmode heartbeat emitter
-# updates wakefulness.json every 5 minutes
+# local VPS version
 
-OUTPUT="$HOME/wakefulness.json"
+OUTPUT="/var/www/deafmo.de/dashboard/wakefulness.json"
 
 while true
 do
@@ -15,8 +15,6 @@ do
   "last_seen": "$NOW"
 }
 EOF
-
-  scp "$OUTPUT" deafmode@deafmo.de:/var/www/deafmo.de/dashboard/wakefulness.json
 
   sleep 300
 
