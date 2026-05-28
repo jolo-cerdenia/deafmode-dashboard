@@ -16,6 +16,6 @@ do
 }
 EOF
 
-  sleep 10
+  sleep 300
 
 done
