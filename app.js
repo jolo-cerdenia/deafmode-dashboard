@@ -16,11 +16,8 @@ async function loadSignal() {
     const response =
       await fetch(`${SIGNAL_URL}?t=${Date.now()}`);
 
-    if (!response.ok) {
-      throw new Error("signal fetch failed");
-    }
-
-    const data = await response.json();
+    const data =
+      await response.json();
 
     renderSignal(data);
 
@@ -30,9 +27,6 @@ async function loadSignal() {
 
     document.getElementById("signal").textContent =
       "UNKNOWN";
-
-    document.getElementById("inference").textContent =
-      "telemetry unavailable";
   }
 }
 
@@ -43,11 +37,8 @@ async function loadWakefulness() {
     const response =
       await fetch(`${WAKEFULNESS_URL}?t=${Date.now()}`);
 
-    if (!response.ok) {
-      throw new Error("wakefulness fetch failed");
-    }
-
-    const data = await response.json();
+    const data =
+      await response.json();
 
     renderWakefulness(data);
 
@@ -62,35 +53,20 @@ async function loadWakefulness() {
 
 function renderSignal(data) {
 
-  const signal =
+  document.getElementById("signal").textContent =
     data.signal || "UNKNOWN";
 
-  const inference =
+  document.getElementById("inference").textContent =
     data.inference || "awaiting inference";
 
-  const drift =
+  document.getElementById("drift").textContent =
     data.drift || "no active drift";
 
-  const response =
+  document.getElementById("response").textContent =
     data.response || "maintain operational stability";
 
-  const generatedAt =
-    data.generated_at || "unknown";
-
-  document.getElementById("signal").textContent =
-    signal;
-
-  document.getElementById("inference").textContent =
-    inference;
-
-  document.getElementById("drift").textContent =
-    drift;
-
-  document.getElementById("response").textContent =
-    response;
-
   document.getElementById("timestamp").textContent =
-    `last update ${generatedAt}`;
+    `last update ${data.generated_at || "unknown"}`;
 }
 
 function renderWakefulness(data) {
@@ -104,13 +80,10 @@ function renderWakefulness(data) {
   const diffMinutes =
     (now - lastSeen) / 1000 / 60;
 
-  let state = "UNKNOWN";
-
-  if (diffMinutes <= 20) {
-    state = "AWAKE";
-  } else {
-    state = "ASLEEP";
-  }
+  const state =
+    diffMinutes <= 20
+      ? "AWAKE"
+      : "ASLEEP";
 
   document.getElementById("wakefulness").textContent =
     state;
@@ -119,37 +92,3 @@ function renderWakefulness(data) {
 loadDashboard();
 
 setInterval(loadDashboard, 60000);
-  const inference =
-    data.inference || "awaiting inference";
-
-  const drift =
-    data.drift || "no active drift";
-
-  const response =
-    data.response || "maintain operational stability";
-
-  const generatedAt =
-    data.generated_at || "unknown";
-
-  document.getElementById("wakefulness").textContent =
-    wakefulness;
-
-  document.getElementById("signal").textContent =
-    signal;
-
-  document.getElementById("inference").textContent =
-    inference;
-
-  document.getElementById("drift").textContent =
-    drift;
-
-  document.getElementById("response").textContent =
-    response;
-
-  document.getElementById("timestamp").textContent =
-    `last update ${generatedAt}`;
-}
-
-loadSignal();
-
-setInterval(loadSignal, 60000);
