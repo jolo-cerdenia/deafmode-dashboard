@@ -1,0 +1,81 @@
+{
+  "version": "0.1",
+  "generated_at": "2026-05-28T07:42:00+08:00",
+  "surface": "deafmode",
+  "mode": "build",
+
+  "signal": {
+    "state": "RECOVERING",
+    "operational_stability": "stable under moderate load",
+    "integrity": "holding",
+    "trend": "improving"
+  },
+
+  "body": {
+    "state": "CONSTRAINED",
+    "recovery_margin": "narrowing",
+    "sleep_consistency": "degraded",
+    "training_adherence": "stable",
+    "fatigue_load": "manageable"
+  },
+
+  "thought": {
+    "state": "FRAGMENTING",
+    "focus_capacity": "unstable",
+    "context_switching": "elevated",
+    "deep_work_continuity": "reduced",
+    "signal_density": "high"
+  },
+
+  "environment": {
+    "state": "POROUS",
+    "interruption_density": "elevated",
+    "notification_exposure": "high",
+    "stimulation_load": "moderate",
+    "environmental_noise": "increasing"
+  },
+
+  "drift": [
+    {
+      "type": "sleep",
+      "severity": "moderate",
+      "inference": "sleep inconsistency remains primary constraint"
+    },
+    {
+      "type": "attention",
+      "severity": "moderate",
+      "inference": "context fragmentation increasing after evening hours"
+    },
+    {
+      "type": "environment",
+      "severity": "low",
+      "inference": "attention environment becoming porous"
+    }
+  ],
+
+  "inference": [
+    "operational stability holding under load",
+    "recovery capacity improving slowly",
+    "focus degradation linked to environmental exposure",
+    "signal integrity remains recoverable"
+  ],
+
+  "response": [
+    "reduce evening stimulation",
+    "protect uninterrupted blocks",
+    "stabilize sleep timing",
+    "reduce passive information intake"
+  ],
+
+  "cadence": {
+    "update_interval": "1h",
+    "next_update_epoch": 1779926400
+  },
+
+  "telemetry": {
+    "source_of_truth": "markdown_artifacts",
+    "parser_state": "stable",
+    "inference_engine": "active",
+    "dashboard_sync": "healthy"
+  }
+}
