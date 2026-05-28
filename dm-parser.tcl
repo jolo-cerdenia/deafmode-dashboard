@@ -30,7 +30,7 @@ proc deafmode::debug {msg} {
     variable debug
 
     if {$debug} {
-        putlog "[deafmode] $msg"
+        putlog "\[deafmode\] $msg"
     }
 }
 
